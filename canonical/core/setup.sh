@@ -2,65 +2,77 @@
 
 set -e
 
-# Define variables
-UBUNTU_CORE_IMG="ubuntu-core-20-amd64.img"
-KERNEL_URL="https://cloud-images.ubuntu.com/focal/current/unpacked/focal-server-cloudimg-amd64-vmlinuz-generic"
+# Variables
+IMG_URL="https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img"
 INITRD_URL="https://cloud-images.ubuntu.com/focal/current/unpacked/focal-server-cloudimg-amd64-initrd-generic"
-INIT_SCRIPT="scripts/init"
-INITRD_DIR="initrd-root"
-INITRD_NEW="ubuntu-initrd-new"
+KERNEL_URL="https://cloud-images.ubuntu.com/focal/current/unpacked/focal-server-cloudimg-amd64-vmlinuz-generic"
+IMG_FILE="ubuntu.img"
+INITRD_FILE="ubuntu-initrd"
+KERNEL_FILE="ubuntu-kernel"
+INITRD_NEW_FILE="ubuntu-initrd-new"
+BLACKLIST_FILE="etc/modprobe.d/blacklist.conf"
+INIT_FILE="init"
+INIT_SCRIPT_FILE="scripts/init"
+MEMORY="1024M"
+ROOT_DEVICE="/dev/sda"
 
-# Define function to gracefully shut down QEMU on SIGINT
-function cleanup {
-  echo "Shutting down QEMU..."
-  kill "${QEMU_PID}" 2>/dev/null
-}
-
-# Set trap for SIGINT signal
-trap cleanup SIGINT
-
-# Download Ubuntu Core image if not already downloaded
-if [ ! -f "${UBUNTU_CORE_IMG}" ]; then
-  wget "https://cdimage.ubuntu.com/ubuntu-core/20/stable/current/${UBUNTU_CORE_IMG}.xz"
-  unxz "${UBUNTU_CORE_IMG}.xz"
+# Download files if necessary
+if [[ ! -f "${IMG_FILE}" ]]; then
+  wget "${IMG_URL}" -O "${IMG_FILE}"
 fi
 
-# Download kernel and initramfs from Ubuntu servers if not already downloaded
-if [ ! -f "ubuntu-kernel" ]; then
-  wget "${KERNEL_URL}" -O ubuntu-kernel
+if [[ ! -f "${INITRD_FILE}" ]]; then
+  wget "${INITRD_URL}" -O "${INITRD_FILE}"
 fi
 
-if [ ! -f "ubuntu-initrd" ]; then
-  wget "${INITRD_URL}" -O ubuntu-initrd
+if [[ ! -f "${KERNEL_FILE}" ]]; then
+  wget "${KERNEL_URL}" -O "${KERNEL_FILE}"
 fi
 
-# Check if initramfs download was successful
-if ! file ubuntu-initrd; then
-  echo "Failed to download initramfs file."
+# Check if initrd download was successful
+if ! file "${INITRD_FILE}"; then
+  printf "Failed to download initramfs file.\n"
   exit 1
 fi
 
-# Prepare initrd-root directory and add Hello World message
-if [ ! -d "${INITRD_DIR}" ]; then
-  mkdir "${INITRD_DIR}"
-  lz4 -dc ubuntu-initrd | (cd "${INITRD_DIR}" && cpio -id)
-  printf '#!/bin/sh\n\nprintf "########################################\n#\n#\tBoot Complete!\n#\tHello World!\n#\n########################################\n"\n/bin/sh' >> "${INITRD_DIR}/${INIT_SCRIPT}"
-  chmod +x "${INITRD_DIR}/${INIT_SCRIPT}"
+# Create temporary directory and extract initrd
+if [[ ! -d "initrd-root" ]]; then
+  mkdir initrd-root
+  cd initrd-root
+  lz4 -dc "../${INITRD_FILE}" | cpio -id
+else
+  cd initrd-root
 fi
 
-# Create new initrd if not already created
-if [ ! -f "${INITRD_NEW}" ]; then
-  (cd "${INITRD_DIR}" && find . | cpio -H newc -o | gzip -9 > "../${INITRD_NEW}")
+# Add blacklisted module to initrd
+printf 'blacklist floppy\n' >> "${BLACKLIST_FILE}"
+
+# Add custom init script to initrd
+mkdir -p "scripts"
+printf '#!/bin/sh\n\nprintf "########################################\n#\n#\tBoot Complete, Cntrl-C to exit!\n#\tHello World!\n#\n########################################\n"\n/bin/sh' >> "${INIT_SCRIPT_FILE}"
+chmod +x "${INIT_SCRIPT_FILE}"
+cp "${INIT_SCRIPT_FILE}" "${INIT_FILE}"
+
+# Create new initrd
+if [[ ! -f "../${INITRD_NEW_FILE}" ]]; then
+  find . | cpio -H newc -o | gzip -9 > "../${INITRD_NEW_FILE}"
 fi
 
-# Boot Ubuntu Core using QEMU
+cd ..
+
+# Check if Ubuntu Core is present in the image
+if ! grep -q "Ubuntu Core" "${IMG_FILE}"; then
+  printf "Ubuntu Core not found in ${IMG_FILE}.\n"
+  exit 1
+fi
+
+# Run QEMU
 qemu-system-x86_64 \
-  -m 1024M \
+  -m "${MEMORY}" \
   -nographic \
-  -kernel ubuntu-kernel \
-  -initrd "${INITRD_NEW}" \
-  -drive "file=${UBUNTU_CORE_IMG},format=raw" \
-  -append "console=ttyS0 root=/dev/sda"
-
-# Clean up
-cleanup
+  -monitor none \
+  -serial stdio \
+  -kernel "${KERNEL_FILE}" \
+  -initrd "${INITRD_NEW_FILE}" \
+  -drive file="${IMG_FILE}",format=raw \
+  -append "root=${ROOT_DEVICE} console=ttyS0"
