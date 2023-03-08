@@ -1,3 +1,7 @@
+#added by Carson
+*initrd*
+*os_prompt.txt*
+
 # Ignore binary files and build artifacts
 *.exe
 *.o
