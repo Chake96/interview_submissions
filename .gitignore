@@ -1,0 +1,43 @@
+# Ignore binary files and build artifacts
+*.exe
+*.o
+*.so
+*.a
+*.test
+*.out
+_build/
+dist/
+vendor/
+release/
+*.log
+
+# Ignore editor and system files
+*~
+.*.swp
+.idea/
+.vscode/
+.DS_Store
+
+# Ignore Go specific files and directories
+*.test
+*.prof
+*.cover
+*.out
+*.exe
+*.test.out
+*.test.coverprofile
+*.test.out
+*.test-time
+
+# Ignore Bash specific files
+*.bak
+*.old
+
+# Ignore QEMU specific files
+*.iso
+*.img
+*.qcow2
+*.elf
+*.map
+*.dump
+*.dtb
