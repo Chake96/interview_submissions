@@ -41,17 +41,18 @@ if ! file ubuntu-initrd; then
 fi
 
 # Prepare initrd-root directory and add Hello World message
-if [ ! -d "${INITRD_DIR}" ]; then
+# if [ ! -d "${INITRD_DIR}" ]; then
+  rm -rf "${INITRD_DIR}"
   mkdir "${INITRD_DIR}"
   lz4 -dc ubuntu-initrd | (cd "${INITRD_DIR}" && cpio -id)
-  printf '#!/bin/sh\n\nprintf "########################################\n#\n#\tBoot Complete!\n#\tHello World!\n#\n########################################\n"\n/bin/sh' >> "${INITRD_DIR}/${INIT_SCRIPT}"
+  printf '#!/bin/sh\n\nprintf "########################################\n#\n#\tBoot Complete!\n#\tHello World!\n#\n########################################\n"\nexec /bin/sh\n' >> "${INITRD_DIR}/${INIT_SCRIPT}"
   chmod +x "${INITRD_DIR}/${INIT_SCRIPT}"
-fi
+# fi
 
 # Create new initrd if not already created
-if [ ! -f "${INITRD_NEW}" ]; then
+# if [ ! -f "${INITRD_NEW}" ]; then
   (cd "${INITRD_DIR}" && find . | cpio -H newc -o | gzip -9 > "../${INITRD_NEW}")
-fi
+# fi
 
 # Boot Ubuntu Core using QEMU
 qemu-system-x86_64 \
