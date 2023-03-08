@@ -49,7 +49,7 @@ printf 'blacklist floppy\n' >> "${BLACKLIST_FILE}"
 
 # Add custom init script to initrd
 mkdir -p "scripts"
-printf '#!/bin/sh\n\nprintf "########################################\n#\n#\tBoot Complete!\n#\tHello World!\n#\n########################################\n"\n/bin/sh' >> "${INIT_SCRIPT_FILE}"
+printf '#!/bin/sh\n\nprintf "########################################\n#\n#\tBoot Complete, Cntrl-C to exit!\n#\tHello World!\n#\n########################################\n"\n/bin/sh' >> "${INIT_SCRIPT_FILE}"
 chmod +x "${INIT_SCRIPT_FILE}"
 cp "${INIT_SCRIPT_FILE}" "${INIT_FILE}"
 
