@@ -1,0 +1,3 @@
+# Soft dependencies extracted from modules themselves.
+softdep btrfs pre: crc32c
+softdep libcrc32c pre: crc32c
