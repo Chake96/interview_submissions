@@ -1,11 +1,11 @@
-package main
+package goshred
 
 import (
 	"bytes"
 	"crypto/sha256"
 	"io/ioutil"
-	"os"
 	"math/rand"
+	"os"
 	"testing"
 )
 
@@ -108,11 +108,10 @@ func TestShred(t *testing.T) {
 		t.Errorf("Shred failed for a file with special permissions: %v", err)
 	}
 
-
 	file, err := os.OpenFile("to_shred.txt", os.O_WRONLY|os.O_CREATE, 0666)
 	content := "The ships hung in the sky in much the same way that bricks don't. The Guide is definitive. Reality is frequently inaccurate. In the beginning the Universe was created. This has made a lot of people very angry and been widely regarded as a bad move. The Answer to the Ultimate Question of Life, The Universe, and Everything is...42! The impossible often has a kind of integrity to it which the merely improbable lacks. The major difference between a thing that might go wrong and a thing that cannot possibly go wrong is that when a thing that cannot possibly go wrong goes wrong, it usually turns out to be impossible to get at and repair. Time is an illusion. Lunchtime doubly so. The ships hung in the sky in much the same way that bricks don't. Human beings, who are almost unique in having the ability to learn from the experience of others, are also remarkable for their apparent disinclination to do so."
-    _, err = file.WriteString(content)
-    defer file.Close()
+	_, err = file.WriteString(content)
+	defer file.Close()
 	if err := Shred(file.Name()); err != nil {
 		t.Errorf("Shred failed for a file with special permissions: %v", err)
 	}

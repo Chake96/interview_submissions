@@ -1,4 +1,4 @@
-package main
+package goshred
 
 import (
 	"crypto/rand"
