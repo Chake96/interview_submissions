@@ -15,7 +15,7 @@ INIT_FILE="init"
 INIT_SCRIPT_FILE="scripts/init"
 MEMORY="1024M"
 ROOT_DEVICE="/dev/sda"
-INIT_CONTENT='#!/bin/sh\n\nprintf "########################################\n#\n#\tBoot Complete!\n#\tHello World!\n#\n########################################\n"\nexec /bin/sh\n'
+INIT_CONTENT='#!/bin/sh\n\nprintf "########################################\n#\n#\tBoot Complete! Use Cntrl-C to Quit\n#\tHello World!\n#\n########################################\n"\nexec /bin/sh\n'
 
 # Functions
 download_file() {
