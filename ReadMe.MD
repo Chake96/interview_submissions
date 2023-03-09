@@ -2,6 +2,9 @@
 
 This repository contains submissions for interview assignments completed by Carson Hake for various companies. Please see the ReadMes within each directory.
 
+### Contents
+    - Canonical - this directory contains code for my application to Canonical
+
 ### Getting Started
 
 To get started with this project, simply clone the repository and navigate to the project directory:
