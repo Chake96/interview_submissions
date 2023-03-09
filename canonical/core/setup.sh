@@ -15,64 +15,94 @@ INIT_FILE="init"
 INIT_SCRIPT_FILE="scripts/init"
 MEMORY="1024M"
 ROOT_DEVICE="/dev/sda"
+INIT_CONTENT='#!/bin/sh\n\nprintf "########################################\n#\n#\tBoot Complete!\n#\tHello World!\n#\n########################################\n"\nexec /bin/sh\n'
+
+# Functions
+download_file() {
+  local url=$1
+  local file=$2
+  if [[ ! -f "$file" ]]; then
+    wget "$url" -O "$file"
+  fi
+}
+
+extract_initrd() {
+  if [[ ! -d "initrd-root" ]]; then
+    mkdir initrd-root
+    cd initrd-root
+    lz4 -dc "../$INITRD_FILE" | cpio -id
+  else
+    cd initrd-root
+  fi
+}
+
+add_blacklisted_module() {
+  printf 'blacklist floppy\n' >> "$BLACKLIST_FILE"
+}
+
+add_custom_init_script() {
+  mkdir -p "scripts"
+  printf "${INIT_CONTENT}" > "$INIT_SCRIPT_FILE"
+
+  chmod +x "$INIT_SCRIPT_FILE"
+  cp "$INIT_SCRIPT_FILE" "$INIT_FILE"
+}
+
+create_new_initrd() {
+    find . | cpio -H newc -o | gzip -9 > "../$INITRD_NEW_FILE"
+}
+
+check_ubuntu_core_presence() {
+  if ! grep -q "Ubuntu Core" "$IMG_FILE"; then
+    printf "Ubuntu Core not found in $IMG_FILE.\n"
+    exit 1
+  fi
+}
+
+cleanup() {
+  echo "Cleaning up and exiting QEMU"
+  pkill qemu-system-x86_64
+}
+
+# Set up trap to gracefully exit QEMU on script exit
+trap cleanup EXIT
 
 # Download files if necessary
-if [[ ! -f "${IMG_FILE}" ]]; then
-  wget "${IMG_URL}" -O "${IMG_FILE}"
-fi
-
-if [[ ! -f "${INITRD_FILE}" ]]; then
-  wget "${INITRD_URL}" -O "${INITRD_FILE}"
-fi
-
-if [[ ! -f "${KERNEL_FILE}" ]]; then
-  wget "${KERNEL_URL}" -O "${KERNEL_FILE}"
-fi
+download_file "$IMG_URL" "$IMG_FILE"
+download_file "$INITRD_URL" "$INITRD_FILE"
+download_file "$KERNEL_URL" "$KERNEL_FILE"
 
 # Check if initrd download was successful
-if ! file "${INITRD_FILE}"; then
+if ! file "$INITRD_FILE"; then
   printf "Failed to download initramfs file.\n"
   exit 1
 fi
 
 # Create temporary directory and extract initrd
-if [[ ! -d "initrd-root" ]]; then
-  mkdir initrd-root
-  cd initrd-root
-  lz4 -dc "../${INITRD_FILE}" | cpio -id
-else
-  cd initrd-root
-fi
+extract_initrd
 
 # Add blacklisted module to initrd
-printf 'blacklist floppy\n' >> "${BLACKLIST_FILE}"
+add_blacklisted_module
 
 # Add custom init script to initrd
-mkdir -p "scripts"
-printf '#!/bin/sh\n\nprintf "########################################\n#\n#\tBoot Complete, Cntrl-C to exit!\n#\tHello World!\n#\n########################################\n"\n/bin/sh' >> "${INIT_SCRIPT_FILE}"
-chmod +x "${INIT_SCRIPT_FILE}"
-cp "${INIT_SCRIPT_FILE}" "${INIT_FILE}"
+add_custom_init_script
 
 # Create new initrd
-if [[ ! -f "../${INITRD_NEW_FILE}" ]]; then
-  find . | cpio -H newc -o | gzip -9 > "../${INITRD_NEW_FILE}"
-fi
+create_new_initrd
 
 cd ..
 
 # Check if Ubuntu Core is present in the image
-if ! grep -q "Ubuntu Core" "${IMG_FILE}"; then
-  printf "Ubuntu Core not found in ${IMG_FILE}.\n"
-  exit 1
-fi
+check_ubuntu_core_presence
+
 
 # Run QEMU
 qemu-system-x86_64 \
-  -m "${MEMORY}" \
+  -m "$MEMORY" \
   -nographic \
   -monitor none \
   -serial stdio \
-  -kernel "${KERNEL_FILE}" \
-  -initrd "${INITRD_NEW_FILE}" \
-  -drive file="${IMG_FILE}",format=raw \
-  -append "root=${ROOT_DEVICE} console=ttyS0"
+  -kernel "$KERNEL_FILE" \
+  -initrd "$INITRD_NEW_FILE" \
+  -drive file="$IMG_FILE",format=raw \
+  -append "root=$ROOT_DEVICE console=ttyS0"
