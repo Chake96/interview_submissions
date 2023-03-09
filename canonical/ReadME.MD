@@ -48,3 +48,8 @@ chmod +x setup.sh
 ```
 ./setup.sh
 ```
+### Post Steps and Troubleshoot
+#### if you want to get rid of the downloaded files or you are running into other issues:
+```
+./clean.sh
+```
