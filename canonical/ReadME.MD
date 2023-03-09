@@ -21,10 +21,10 @@ To build and run the shred program, follow these steps:
 cd interview_submissions/canonical/shred
 ```
 
-2. Build and run test program
+2. Run the test program
 
 ```
-go build test .
+go test --count=1 . -v
 ```
 
 
