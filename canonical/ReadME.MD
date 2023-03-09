@@ -18,7 +18,7 @@ To build and run the shred program, follow these steps:
 1. CD into the Shred Directory
 
 ```
-cd interview_submissions/canonical/shred
+cd interview_submissions/canonical/goshred
 ```
 
 2. Run the test program
